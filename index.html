@@ -38,7 +38,7 @@ async function main() {
 async function sendAttendance(userId, actionType) {
     const timestamp = new Date().toISOString();
 
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/attendance_logs`, {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/attendance_log`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
@@ -48,7 +48,7 @@ async function sendAttendance(userId, actionType) {
         },
         body: JSON.stringify({
             user_id: userId,
-            action: actionType,
+            type: actionType,
             timestamp: timestamp
         })
     });
