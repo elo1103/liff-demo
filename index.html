@@ -1,32 +1,56 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>My First LIFF App</title>
+  <meta charset="UTF-8">
+  <title>打卡系統</title>
+  <script src="https://static.line-scdn.net/liff/2.23.0/sdk.js"></script>
 </head>
 <body>
-  <h1>Loading...</h1>
+  <h2>打卡系統</h2>
+  <button id="btnStart">上班</button>
+  <button id="btnEnd">下班</button>
 
-  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script>
-    async function main() {
-      // 初始化 LIFF
-      await liff.init({ liffId: "2008507273-84v7GBep" });
+    async function init() {
+      await liff.init({ liffId: "YOUR_LIFF_ID" });
 
-      // 確保使用者已登入
       if (!liff.isLoggedIn()) {
         liff.login();
         return;
       }
 
-      // 抓使用者資料
       const profile = await liff.getProfile();
-      document.body.innerHTML = `
-        <h2>Hi ${profile.displayName}!</h2>
-        <p>Your LINE ID: ${profile.userId}</p>
-      `;
+      const userId = profile.userId;
+
+      document.getElementById("btnStart").onclick = () => sendRecord("start", userId);
+      document.getElementById("btnEnd").onclick = () => sendRecord("end", userId);
     }
 
-    main();
+    async function sendRecord(type, userId) {
+      const payload = {
+        user_id: userId,
+        type: type,
+        timestamp: new Date().toISOString()
+      };
+
+      const res = await fetch("https://YOUR-PROJECT.supabase.co/rest/v1/attendance_log", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "apikey": "YOUR_SUPABASE_ANON_KEY",
+          "Authorization": "Bearer YOUR_SUPABASE_ANON_KEY"
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (res.ok) {
+        alert(type === "start" ? "上班打卡成功！" : "下班打卡成功！");
+      } else {
+        alert("打卡失敗，請稍後再試");
+      }
+    }
+
+    init();
   </script>
 </body>
 </html>
