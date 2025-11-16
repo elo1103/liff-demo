@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>My First LIFF App</title>
+</head>
+<body>
+  <h1>Loading...</h1>
+
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script>
+    async function main() {
+      // 初始化 LIFF
+      await liff.init({ liffId: "2008507273-84v7GBep" });
+
+      // 確保使用者已登入
+      if (!liff.isLoggedIn()) {
+        liff.login();
+        return;
+      }
+
+      // 抓使用者資料
+      const profile = await liff.getProfile();
+      document.body.innerHTML = `
+        <h2>Hi ${profile.displayName}!</h2>
+        <p>Your LINE ID: ${profile.userId}</p>
+      `;
+    }
+
+    main();
+  </script>
+</body>
+</html>
