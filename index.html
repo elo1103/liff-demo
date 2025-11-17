@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>打卡系統</title>
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -27,7 +28,7 @@
             border-radius: 24px;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
             padding: 40px;
-            max-width: 420px;
+            max-width: 600px;
             width: 100%;
             animation: slideUp 0.5s ease-out;
         }
@@ -197,6 +198,100 @@
             font-size: 16px;
         }
 
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 12px 16px;
+            background: transparent;
+            border: none;
+            border-bottom: 3px solid transparent;
+            font-size: 16px;
+            font-weight: 600;
+            color: #718096;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            bottom: -2px;
+        }
+
+        .tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .chart-container {
+            margin-top: 24px;
+            padding: 20px;
+            background: #f7fafc;
+            border-radius: 12px;
+        }
+
+        .chart-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+
+        .chart-wrapper {
+            position: relative;
+            height: 300px;
+            margin-bottom: 24px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 16px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #718096;
+        }
+
+        .btn-view-charts {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            margin-top: 16px;
+        }
+
+        .btn-view-charts:hover {
+            box-shadow: 0 6px 20px rgba(79, 172, 254, 0.4);
+            transform: translateY(-2px);
+        }
+
         @media (max-width: 480px) {
             .container {
                 padding: 24px;
@@ -248,15 +343,44 @@
                         <div class="greeting">你好，${profile.displayName}</div>
                         <div class="subtitle">請選擇打卡類型</div>
                     </div>
-                    <div class="button-group">
-                        <button id="clockIn" class="btn btn-clock-in">📅 上班打卡</button>
-                        <button id="clockOut" class="btn btn-clock-out">🏠 下班打卡</button>
+                    <div class="tabs">
+                        <button class="tab active" data-tab="clock">打卡</button>
+                        <button class="tab" data-tab="stats">統計</button>
                     </div>
-                    <div id="result" class="result">
-                        <div style="color: #a0aec0; font-size: 14px;">等待打卡...</div>
+                    <div id="clockTab" class="tab-content active">
+                        <div class="button-group">
+                            <button id="clockIn" class="btn btn-clock-in">📅 上班打卡</button>
+                            <button id="clockOut" class="btn btn-clock-out">🏠 下班打卡</button>
+                        </div>
+                        <div id="result" class="result">
+                            <div style="color: #a0aec0; font-size: 14px;">等待打卡...</div>
+                        </div>
+                    </div>
+                    <div id="statsTab" class="tab-content">
+                        <div id="statsContent">
+                            <div class="loading">
+                                <div class="spinner"></div>
+                                <div class="loading-text">載入統計資料...</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             `;
+
+            // 標籤頁切換
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.onclick = () => {
+                    const targetTab = tab.dataset.tab;
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                    tab.classList.add('active');
+                    document.getElementById(`${targetTab}Tab`).classList.add('active');
+                    
+                    if (targetTab === 'stats') {
+                        loadStatistics(userId);
+                    }
+                };
+            });
 
             document.getElementById("clockIn").onclick = () => sendAttendance(userId, "clock_in");
             document.getElementById("clockOut").onclick = () => sendAttendance(userId, "clock_out");
@@ -316,6 +440,12 @@
                 `;
 
                 console.log("Inserted:", data);
+                
+                // 如果當前在統計頁面，刷新統計數據
+                const statsTab = document.getElementById("statsTab");
+                if (statsTab && statsTab.classList.contains("active")) {
+                    loadStatistics(userId);
+                }
             } catch (error) {
                 // 顯示錯誤訊息
                 resultDiv.className = "result";
@@ -331,6 +461,308 @@
                 // 重新啟用按鈕
                 clockInBtn.disabled = false;
                 clockOutBtn.disabled = false;
+            }
+        }
+
+        async function fetchAttendanceHistory(userId, days = 30) {
+            const endDate = new Date();
+            const startDate = new Date();
+            startDate.setDate(startDate.getDate() - days);
+
+            const res = await fetch(
+                `${SUPABASE_URL}/rest/v1/attendance_log?user_id=eq.${userId}&timestamp=gte.${startDate.toISOString()}&timestamp=lte.${endDate.toISOString()}&order=timestamp.asc`,
+                {
+                    headers: {
+                        "apikey": SUPABASE_KEY,
+                        "Authorization": `Bearer ${SUPABASE_KEY}`
+                    }
+                }
+            );
+
+            if (!res.ok) {
+                throw new Error('獲取打卡記錄失敗');
+            }
+
+            return await res.json();
+        }
+
+        function calculateWorkHours(records) {
+            const dailyHours = {};
+            const clockIns = [];
+            const clockOuts = [];
+
+            // 分離上班和下班記錄
+            records.forEach(record => {
+                const date = new Date(record.timestamp);
+                const dateKey = date.toISOString().split('T')[0];
+                
+                if (!dailyHours[dateKey]) {
+                    dailyHours[dateKey] = { clockIn: null, clockOut: null };
+                }
+
+                if (record.type === 'clock_in') {
+                    dailyHours[dateKey].clockIn = date;
+                    clockIns.push({ date: dateKey, time: date });
+                } else if (record.type === 'clock_out') {
+                    dailyHours[dateKey].clockOut = date;
+                    clockOuts.push({ date: dateKey, time: date });
+                }
+            });
+
+            // 計算每日工時
+            const hoursData = [];
+            Object.keys(dailyHours).sort().forEach(dateKey => {
+                const day = dailyHours[dateKey];
+                if (day.clockIn && day.clockOut) {
+                    const hours = (day.clockOut - day.clockIn) / (1000 * 60 * 60);
+                    hoursData.push({
+                        date: dateKey,
+                        hours: parseFloat(hours.toFixed(2)),
+                        clockIn: day.clockIn,
+                        clockOut: day.clockOut
+                    });
+                }
+            });
+
+            return hoursData;
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return `${date.getMonth() + 1}/${date.getDate()}`;
+        }
+
+        function formatHours(hours) {
+            const h = Math.floor(hours);
+            const m = Math.round((hours - h) * 60);
+            return m > 0 ? `${h}小時${m}分鐘` : `${h}小時`;
+        }
+
+        async function loadStatistics(userId) {
+            const statsContent = document.getElementById("statsContent");
+            
+            try {
+                console.log('開始載入統計資料...');
+                const records = await fetchAttendanceHistory(userId, 30);
+                console.log('獲取到記錄數:', records.length);
+                const hoursData = calculateWorkHours(records);
+                console.log('計算後的工時數據:', hoursData);
+
+                if (hoursData.length === 0) {
+                    statsContent.innerHTML = `
+                        <div style="text-align: center; padding: 40px; color: #718096;">
+                            <div style="font-size: 48px; margin-bottom: 16px;">📊</div>
+                            <div>尚無打卡記錄</div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // 計算統計數據
+                const totalHours = hoursData.reduce((sum, day) => sum + day.hours, 0);
+                const avgHours = totalHours / hoursData.length;
+                const thisWeekHours = hoursData
+                    .filter(day => {
+                        const dayDate = new Date(day.date);
+                        const weekAgo = new Date();
+                        weekAgo.setDate(weekAgo.getDate() - 7);
+                        return dayDate >= weekAgo;
+                    })
+                    .reduce((sum, day) => sum + day.hours, 0);
+                const workDays = hoursData.length;
+
+                // 準備圖表數據（最近7天，如果不足7天則顯示所有數據）
+                const recentDays = hoursData.slice(-7);
+                const chartLabels = recentDays.length > 0 
+                    ? recentDays.map(day => formatDate(day.date))
+                    : [];
+                const chartData = recentDays.length > 0
+                    ? recentDays.map(day => day.hours)
+                    : [];
+
+                statsContent.innerHTML = `
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-value">${formatHours(totalHours)}</div>
+                            <div class="stat-label">總工時</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">${formatHours(avgHours)}</div>
+                            <div class="stat-label">平均每日</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">${formatHours(thisWeekHours)}</div>
+                            <div class="stat-label">本週工時</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">${workDays}</div>
+                            <div class="stat-label">工作天數</div>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <div class="chart-title">最近7天工時趨勢</div>
+                        <div class="chart-wrapper">
+                            <canvas id="dailyHoursChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <div class="chart-title">每日工時分佈</div>
+                        <div class="chart-wrapper">
+                            <canvas id="hoursDistributionChart"></canvas>
+                        </div>
+                    </div>
+                `;
+
+                // 等待 DOM 更新後再創建圖表
+                setTimeout(() => {
+                    // 檢查 Chart.js 是否已載入
+                    if (typeof Chart === 'undefined') {
+                        console.error('Chart.js 未載入');
+                        statsContent.innerHTML += `
+                            <div style="text-align: center; padding: 20px; color: #c53030;">
+                                <div>圖表庫載入失敗，請重新整理頁面</div>
+                            </div>
+                        `;
+                        return;
+                    }
+
+                    console.log('準備創建圖表，數據點數:', chartData.length);
+                    console.log('圖表標籤:', chartLabels);
+                    console.log('圖表數據:', chartData);
+
+                    // 創建每日工時折線圖
+                    const dailyCtx = document.getElementById('dailyHoursChart');
+                    if (!dailyCtx) {
+                        console.error('找不到 dailyHoursChart canvas');
+                        return;
+                    }
+                    
+                    console.log('創建折線圖...');
+                    new Chart(dailyCtx.getContext('2d'), {
+                    type: 'line',
+                    data: {
+                        labels: chartLabels,
+                        datasets: [{
+                            label: '工時（小時）',
+                            data: chartData,
+                            borderColor: 'rgb(102, 126, 234)',
+                            backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 5,
+                            pointBackgroundColor: 'rgb(102, 126, 234)',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return `工時: ${formatHours(context.parsed.y)}`;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function(value) {
+                                        return value + 'h';
+                                    }
+                                },
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.05)'
+                                }
+                            },
+                            x: {
+                                grid: {
+                                    display: false
+                                }
+                            }
+                        }
+                    }
+                    });
+
+                    // 創建每日工時長條圖
+                    const distCtx = document.getElementById('hoursDistributionChart');
+                    if (!distCtx) {
+                        console.error('找不到 hoursDistributionChart canvas');
+                        return;
+                    }
+                    
+                    console.log('創建長條圖...');
+                    new Chart(distCtx.getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: chartLabels,
+                        datasets: [{
+                            label: '工時（小時）',
+                            data: chartData,
+                            backgroundColor: chartData.map((_, i) => 
+                                `hsl(${220 + i * 10}, 70%, ${60 + i * 5}%)`
+                            ),
+                            borderColor: 'rgb(102, 126, 234)',
+                            borderWidth: 2,
+                            borderRadius: 8
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return `工時: ${formatHours(context.parsed.y)}`;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function(value) {
+                                        return value + 'h';
+                                    }
+                                },
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.05)'
+                                }
+                            },
+                            x: {
+                                grid: {
+                                    display: false
+                                }
+                            }
+                        }
+                    }
+                    });
+                    
+                    console.log('圖表創建完成！');
+                }, 100); // 給 DOM 一點時間更新
+
+            } catch (error) {
+                statsContent.innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: #c53030;">
+                        <div style="font-size: 48px; margin-bottom: 16px;">❌</div>
+                        <div>載入統計資料失敗</div>
+                        <div style="font-size: 12px; margin-top: 8px; color: #718096;">${error.message}</div>
+                    </div>
+                `;
+                console.error("Error loading statistics:", error);
             }
         }
 
