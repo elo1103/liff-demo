@@ -2,133 +2,158 @@
 <html lang="zh-TW">
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>打卡系統</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        /* Design tokens — Apple-inspired (align with design-reference) */
+        :root {
+            --bg: #f5f5f7;
+            --surface: #ffffff;
+            --text-primary: #1d1d1f;
+            --text-secondary: #6e6e73;
+            --text-tertiary: #86868b;
+            --border: #d2d2d7;
+            --divider: #e8e8ed;
+            --blue: #007aff;
+            --green: #34c759;
+            --green-bg: #edfbf1;
+            --red: #ff3b30;
+            --red-bg: #fff2f1;
+            --radius-sm: 10px;
+            --radius-md: 16px;
+            --radius-lg: 20px;
+            --shadow-card: 0 2px 12px rgba(0,0,0,0.06);
+            --transition: 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
+            --font: "Inter", "Noto Sans TC", -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang TC", sans-serif;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        html {
+            font-size: 16px;
+            -webkit-text-size-adjust: 100%;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft JhengHei', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
+            font-family: var(--font);
+            background: var(--bg);
+            color: var(--text-primary);
+            min-height: 100dvh;
             display: flex;
             justify-content: center;
             align-items: center;
             padding: 20px;
+            line-height: 1.5;
+            padding-bottom: env(safe-area-inset-bottom, 20px);
         }
 
         .container {
-            background: white;
-            border-radius: 24px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            padding: 40px;
-            max-width: 600px;
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-card);
+            padding: 32px 24px;
+            max-width: 480px;
             width: 100%;
-            animation: slideUp 0.5s ease-out;
+            animation: slideUp 0.4s cubic-bezier(0.32, 0.72, 0, 1);
         }
 
         @keyframes slideUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            from { opacity: 0; transform: translateY(16px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .header {
             text-align: center;
-            margin-bottom: 32px;
+            margin-bottom: 28px;
         }
 
         .avatar {
-            width: 80px;
-            height: 80px;
+            width: 72px;
+            height: 72px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            margin: 0 auto 16px;
+            background: var(--blue);
+            margin: 0 auto 14px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 32px;
-            color: white;
-            font-weight: bold;
-            box-shadow: 0 8px 16px rgba(102, 126, 234, 0.3);
+            font-size: 28px;
+            color: #fff;
+            font-weight: 700;
+            letter-spacing: -0.02em;
         }
 
         .greeting {
-            font-size: 24px;
-            font-weight: 600;
-            color: #2d3748;
-            margin-bottom: 8px;
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            color: var(--text-primary);
+            margin-bottom: 6px;
         }
 
         .subtitle {
             font-size: 14px;
-            color: #718096;
+            color: var(--text-tertiary);
+            font-weight: 500;
         }
 
         .button-group {
             display: flex;
             flex-direction: column;
-            gap: 16px;
-            margin-bottom: 24px;
+            gap: 12px;
+            margin-bottom: 20px;
         }
 
         .btn {
-            padding: 18px 24px;
+            padding: 16px 20px;
             border: none;
-            border-radius: 12px;
-            font-size: 18px;
+            border-radius: var(--radius-sm);
+            font-family: var(--font);
+            font-size: 16px;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            transition: transform var(--transition), background var(--transition);
+            -webkit-tap-highlight-color: transparent;
         }
 
         .btn:active {
-            transform: scale(0.98);
+            transform: scale(0.97);
         }
 
         .btn-clock-in {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+            background: var(--blue);
+            color: #fff;
         }
 
-        .btn-clock-in:hover {
-            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
-            transform: translateY(-2px);
+        .btn-clock-in:hover:not(:disabled) {
+            background: #0066d6;
         }
 
         .btn-clock-out {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-            color: white;
+            background: var(--bg);
+            color: var(--text-primary);
+            border: 1px solid var(--divider);
         }
 
-        .btn-clock-out:hover {
-            box-shadow: 0 6px 20px rgba(245, 87, 108, 0.4);
-            transform: translateY(-2px);
+        .btn-clock-out:hover:not(:disabled) {
+            background: #ebebed;
         }
 
         .btn:disabled {
-            opacity: 0.6;
+            opacity: 0.5;
             cursor: not-allowed;
             transform: none !important;
         }
 
         .result {
-            background: #f7fafc;
-            border-radius: 12px;
+            background: var(--bg);
+            border-radius: var(--radius-md);
             padding: 20px;
             text-align: center;
             min-height: 80px;
@@ -136,40 +161,37 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            border: 2px dashed #e2e8f0;
-            transition: all 0.3s ease;
+            border: 1px solid var(--divider);
+            transition: all var(--transition);
         }
 
         .result.success {
-            background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
-            border-color: #48bb78;
-            color: #22543d;
-            animation: successPulse 0.5s ease-out;
+            background: var(--green-bg);
+            border-color: var(--green);
+            color: var(--text-primary);
+            animation: successPulse 0.4s ease-out;
         }
 
         @keyframes successPulse {
-            0%, 100% {
-                transform: scale(1);
-            }
-            50% {
-                transform: scale(1.02);
-            }
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.01); }
         }
 
         .result-icon {
-            font-size: 32px;
+            font-size: 28px;
             margin-bottom: 8px;
         }
 
         .result-text {
-            font-size: 16px;
+            font-size: 15px;
             font-weight: 600;
+            letter-spacing: -0.01em;
             margin-bottom: 4px;
         }
 
         .result-time {
             font-size: 12px;
-            opacity: 0.8;
+            color: var(--text-tertiary);
         }
 
         .loading {
@@ -178,31 +200,30 @@
         }
 
         .spinner {
-            width: 50px;
-            height: 50px;
-            border: 4px solid #e2e8f0;
-            border-top-color: #667eea;
+            width: 44px;
+            height: 44px;
+            border: 3px solid var(--divider);
+            border-top-color: var(--blue);
             border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 16px;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 14px;
         }
 
         @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
+            to { transform: rotate(360deg); }
         }
 
         .loading-text {
-            color: #718096;
-            font-size: 16px;
+            color: var(--text-tertiary);
+            font-size: 15px;
+            font-weight: 500;
         }
 
         .tabs {
             display: flex;
-            gap: 8px;
-            margin-bottom: 24px;
-            border-bottom: 2px solid #e2e8f0;
+            gap: 0;
+            margin-bottom: 20px;
+            border-bottom: 0.5px solid var(--divider);
         }
 
         .tab {
@@ -210,19 +231,20 @@
             padding: 12px 16px;
             background: transparent;
             border: none;
-            border-bottom: 3px solid transparent;
-            font-size: 16px;
+            border-bottom: 2px solid transparent;
+            font-family: var(--font);
+            font-size: 15px;
             font-weight: 600;
-            color: #718096;
+            color: var(--text-tertiary);
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all var(--transition);
             position: relative;
-            bottom: -2px;
+            bottom: -0.5px;
         }
 
         .tab.active {
-            color: #667eea;
-            border-bottom-color: #667eea;
+            color: var(--blue);
+            border-bottom-color: var(--blue);
         }
 
         .tab-content {
@@ -231,81 +253,78 @@
 
         .tab-content.active {
             display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .chart-container {
-            margin-top: 24px;
-            padding: 20px;
-            background: #f7fafc;
-            border-radius: 12px;
+            margin-top: 16px;
+            padding: 20px 16px;
+            background: var(--surface);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-card);
         }
 
         .chart-title {
-            font-size: 18px;
+            font-size: 15px;
             font-weight: 600;
-            color: #2d3748;
-            margin-bottom: 16px;
+            letter-spacing: -0.01em;
+            color: var(--text-primary);
+            margin-bottom: 14px;
             text-align: center;
         }
 
         .chart-wrapper {
             position: relative;
-            height: 300px;
-            margin-bottom: 24px;
+            height: 280px;
+            margin-bottom: 20px;
+        }
+
+        .chart-wrapper:last-child {
+            margin-bottom: 0;
         }
 
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
-            margin-bottom: 24px;
+            gap: 10px;
+            margin-bottom: 20px;
         }
 
         .stat-card {
-            background: white;
-            padding: 16px;
-            border-radius: 12px;
+            background: var(--surface);
+            padding: 16px 12px;
+            border-radius: var(--radius-sm);
             text-align: center;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            box-shadow: var(--shadow-card);
         }
 
         .stat-value {
             font-size: 24px;
             font-weight: 700;
-            color: #667eea;
+            letter-spacing: -0.03em;
+            line-height: 1.15;
+            color: var(--blue);
             margin-bottom: 4px;
         }
 
         .stat-label {
             font-size: 12px;
-            color: #718096;
-        }
-
-        .btn-view-charts {
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-            color: white;
-            margin-top: 16px;
-        }
-
-        .btn-view-charts:hover {
-            box-shadow: 0 6px 20px rgba(79, 172, 254, 0.4);
-            transform: translateY(-2px);
+            color: var(--text-tertiary);
+            font-weight: 500;
         }
 
         @media (max-width: 480px) {
             .container {
-                padding: 24px;
-                border-radius: 16px;
+                padding: 24px 20px;
+                border-radius: var(--radius-md);
             }
-
-            .greeting {
-                font-size: 20px;
-            }
-
-            .btn {
-                padding: 16px 20px;
-                font-size: 16px;
-            }
+            .greeting { font-size: 20px; }
+            .btn { padding: 14px 18px; font-size: 15px; }
         }
     </style>
 </head>
@@ -353,7 +372,7 @@
                             <button id="clockOut" class="btn btn-clock-out">🏠 下班打卡</button>
                         </div>
                         <div id="result" class="result">
-                            <div style="color: #a0aec0; font-size: 14px;">等待打卡...</div>
+                            <div style="color: #86868b; font-size: 14px;">等待打卡...</div>
                         </div>
                     </div>
                     <div id="statsTab" class="tab-content">
@@ -397,7 +416,7 @@
 
             // 顯示載入狀態
             resultDiv.className = "result";
-            resultDiv.innerHTML = '<div class="spinner" style="width: 30px; height: 30px; border-width: 3px;"></div><div style="margin-top: 8px; color: #718096;">處理中...</div>';
+            resultDiv.innerHTML = '<div class="spinner" style="width: 30px; height: 30px; border-width: 3px;"></div><div style="margin-top: 8px; color: #86868b;">處理中...</div>';
 
             try {
                 const timestamp = new Date().toISOString();
@@ -449,12 +468,12 @@
             } catch (error) {
                 // 顯示錯誤訊息
                 resultDiv.className = "result";
-                resultDiv.style.background = "#fed7d7";
-                resultDiv.style.borderColor = "#fc8181";
+                resultDiv.style.background = "#fff2f1";
+                resultDiv.style.borderColor = "#ff3b30";
                 resultDiv.innerHTML = `
                     <div class="result-icon">❌</div>
-                    <div class="result-text" style="color: #c53030;">打卡失敗</div>
-                    <div class="result-time" style="color: #c53030;">請稍後再試</div>
+                    <div class="result-text" style="color: #ff3b30;">打卡失敗</div>
+                    <div class="result-time" style="color: #6e6e73;">請稍後再試</div>
                 `;
                 console.error("Error:", error);
             } finally {
@@ -550,7 +569,7 @@
 
                 if (hoursData.length === 0) {
                     statsContent.innerHTML = `
-                        <div style="text-align: center; padding: 40px; color: #718096;">
+                        <div style="text-align: center; padding: 40px; color: #86868b;">
                             <div style="font-size: 48px; margin-bottom: 16px;">📊</div>
                             <div>尚無打卡記錄</div>
                         </div>
@@ -619,7 +638,7 @@
                     if (typeof Chart === 'undefined') {
                         console.error('Chart.js 未載入');
                         statsContent.innerHTML += `
-                            <div style="text-align: center; padding: 20px; color: #c53030;">
+                            <div style="text-align: center; padding: 20px; color: #ff3b30;">
                                 <div>圖表庫載入失敗，請重新整理頁面</div>
                             </div>
                         `;
@@ -645,13 +664,13 @@
                         datasets: [{
                             label: '工時（小時）',
                             data: chartData,
-                            borderColor: 'rgb(102, 126, 234)',
-                            backgroundColor: 'rgba(102, 126, 234, 0.1)',
-                            borderWidth: 3,
+                            borderColor: '#007aff',
+                            backgroundColor: 'rgba(0, 122, 255, 0.08)',
+                            borderWidth: 2.5,
                             fill: true,
                             tension: 0.4,
-                            pointRadius: 5,
-                            pointBackgroundColor: 'rgb(102, 126, 234)',
+                            pointRadius: 4,
+                            pointBackgroundColor: '#007aff',
                             pointBorderColor: '#fff',
                             pointBorderWidth: 2
                         }]
@@ -708,11 +727,11 @@
                             label: '工時（小時）',
                             data: chartData,
                             backgroundColor: chartData.map((_, i) => 
-                                `hsl(${220 + i * 10}, 70%, ${60 + i * 5}%)`
+                                `rgba(0, 122, 255, ${0.2 + (i / chartData.length) * 0.5})`
                             ),
-                            borderColor: 'rgb(102, 126, 234)',
-                            borderWidth: 2,
-                            borderRadius: 8
+                            borderColor: '#007aff',
+                            borderWidth: 1,
+                            borderRadius: 6
                         }]
                     },
                     options: {
@@ -756,10 +775,10 @@
 
             } catch (error) {
                 statsContent.innerHTML = `
-                    <div style="text-align: center; padding: 40px; color: #c53030;">
+                    <div style="text-align: center; padding: 40px; color: #ff3b30;">
                         <div style="font-size: 48px; margin-bottom: 16px;">❌</div>
                         <div>載入統計資料失敗</div>
-                        <div style="font-size: 12px; margin-top: 8px; color: #718096;">${error.message}</div>
+                        <div style="font-size: 12px; margin-top: 8px; color: #86868b;">${error.message}</div>
                     </div>
                 `;
                 console.error("Error loading statistics:", error);
