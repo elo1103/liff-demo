@@ -505,7 +505,7 @@
             resultDiv.className = "result";
             resultDiv.innerHTML = '<div class="spinner" style="width: 30px; height: 30px; border-width: 3px;"></div><div style="margin-top: 8px; color: #86868b;">處理中...</div>';
 
-            // 模擬短暫延遲後顯示成功（假數據模式，不寫入資料庫）
+            // 模擬短暫延遲後顯示成功
             const localTime = new Date().toLocaleString('zh-TW', {
                 year: 'numeric', month: '2-digit', day: '2-digit',
                 hour: '2-digit', minute: '2-digit', second: '2-digit'
@@ -659,7 +659,7 @@
                         </div>
                         <div style="text-align: center; padding: 40px; color: #86868b;">
                             <div style="font-size: 48px; margin-bottom: 16px;">📊</div>
-                            <div>此條件下尚無打卡記錄（假數據）</div>
+                            <div>此條件下尚無打卡記錄</div>
                         </div>
                     `;
                     bindStatsFilters(userId);
