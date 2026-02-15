@@ -318,6 +318,60 @@
             font-weight: 500;
         }
 
+        /* Form fields (dropdowns) */
+        .form-group {
+            margin-bottom: 16px;
+        }
+        .field-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+        }
+        .field-select {
+            width: 100%;
+            font-family: var(--font);
+            font-size: 16px;
+            padding: 12px 14px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            background: var(--bg);
+            color: var(--text-primary);
+            appearance: none;
+            -webkit-appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%2386868b' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 14px center;
+            padding-right: 36px;
+            transition: border-color var(--transition);
+        }
+        .field-select:focus {
+            outline: none;
+            border-color: var(--blue);
+            box-shadow: 0 0 0 3px rgba(0,122,255,0.15);
+        }
+        .field-select.warning { border-color: var(--red); }
+        .warning-box {
+            background: var(--red-bg);
+            border: 1px solid var(--red);
+            border-radius: var(--radius-sm);
+            padding: 12px 14px;
+            font-size: 14px;
+            color: var(--red);
+            font-weight: 500;
+            margin-bottom: 16px;
+            display: none;
+        }
+        .warning-box.visible { display: block; }
+        .stats-filters {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+        .stats-filters .form-group { margin-bottom: 0; }
+
         @media (max-width: 480px) {
             .container {
                 padding: 24px 20px;
@@ -338,8 +392,15 @@
 
     <script>
         const LIFF_ID = "2008507273-84v7GBep";
-        const SUPABASE_URL = "https://wotnfvxjzrbfqmnvjfsg.supabase.co";
-        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndvdG5mdnhqenJiZnFtbnZqZnNnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE5OTk5MzQsImV4cCI6MjA2NzU3NTkzNH0.xXVgTF2ULgqGsW19HvjRqzxN0budJPt8kDwTIC5ombQ";
+        const PROJECT_NAMES = [
+            "快閃店小型陳列架製作",
+            "連鎖門市展示架製作",
+            "台北商辦大廳木作工程",
+            "企業辦公室裝修木作",
+            "住宅系統櫃訂製工程",
+            "博物館展示櫃體製作工程"
+        ];
+        const CATEGORIES = ["估價", "設計", "工程", "安裝", "返工"];
 
         async function main() {
             await liff.init({ liffId: LIFF_ID });
@@ -351,8 +412,6 @@
 
             const profile = await liff.getProfile();
             const userId = profile.userId;
-
-            // 取得使用者名稱的第一個字作為頭像
             const avatarText = profile.displayName.charAt(0).toUpperCase();
 
             document.getElementById("app").innerHTML = `
@@ -360,13 +419,28 @@
                     <div class="header">
                         <div class="avatar">${avatarText}</div>
                         <div class="greeting">你好，${profile.displayName}</div>
-                        <div class="subtitle">請選擇打卡類型</div>
+                        <div class="subtitle">請選擇專案與類別後打卡</div>
                     </div>
                     <div class="tabs">
                         <button class="tab active" data-tab="clock">打卡</button>
                         <button class="tab" data-tab="stats">統計</button>
                     </div>
                     <div id="clockTab" class="tab-content active">
+                        <div id="clockWarning" class="warning-box" role="alert">請先選擇專案名稱與類別，才能進行打卡。</div>
+                        <div class="form-group">
+                            <label class="field-label" for="selectProject">專案名稱</label>
+                            <select id="selectProject" class="field-select">
+                                <option value="">請選擇專案</option>
+                                ${PROJECT_NAMES.map(p => `<option value="${p}">${p}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="field-label" for="selectCategory">類別</label>
+                            <select id="selectCategory" class="field-select">
+                                <option value="">請選擇類別</option>
+                                ${CATEGORIES.map(c => `<option value="${c}">${c}</option>`).join('')}
+                            </select>
+                        </div>
                         <div class="button-group">
                             <button id="clockIn" class="btn btn-clock-in">📅 上班打卡</button>
                             <button id="clockOut" class="btn btn-clock-out">🏠 下班打卡</button>
@@ -386,7 +460,6 @@
                 </div>
             `;
 
-            // 標籤頁切換
             document.querySelectorAll('.tab').forEach(tab => {
                 tab.onclick = () => {
                     const targetTab = tab.dataset.tab;
@@ -394,156 +467,133 @@
                     document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
                     tab.classList.add('active');
                     document.getElementById(`${targetTab}Tab`).classList.add('active');
-                    
-                    if (targetTab === 'stats') {
-                        loadStatistics(userId);
-                    }
+                    if (targetTab === 'stats') loadStatistics(userId);
                 };
             });
 
             document.getElementById("clockIn").onclick = () => sendAttendance(userId, "clock_in");
             document.getElementById("clockOut").onclick = () => sendAttendance(userId, "clock_out");
+
+            // 選擇後隱藏警告、移除欄位警示樣式
+            ['selectProject', 'selectCategory'].forEach(id => {
+                document.getElementById(id).addEventListener('change', () => {
+                    const w = document.getElementById("clockWarning");
+                    if (w) w.classList.remove('visible');
+                    document.getElementById("selectProject").classList.remove('warning');
+                    document.getElementById("selectCategory").classList.remove('warning');
+                });
+            });
         }
 
-        async function sendAttendance(userId, actionType) {
+        function showClockWarning() {
+            const w = document.getElementById("clockWarning");
+            if (w) w.classList.add('visible');
+            const p = document.getElementById("selectProject");
+            const c = document.getElementById("selectCategory");
+            if (p && p.value === '') p.classList.add('warning');
+            if (c && c.value === '') c.classList.add('warning');
+        }
+
+        function sendAttendance(userId, actionType) {
+            const project = (document.getElementById("selectProject") || {}).value;
+            const category = (document.getElementById("selectCategory") || {}).value;
+            if (!project || !category) {
+                showClockWarning();
+                return;
+            }
+
             const clockInBtn = document.getElementById("clockIn");
             const clockOutBtn = document.getElementById("clockOut");
             const resultDiv = document.getElementById("result");
-
-            // 禁用按鈕
             clockInBtn.disabled = true;
             clockOutBtn.disabled = true;
+            document.getElementById("clockWarning").classList.remove('visible');
+            document.getElementById("selectProject").classList.remove('warning');
+            document.getElementById("selectCategory").classList.remove('warning');
 
-            // 顯示載入狀態
             resultDiv.className = "result";
             resultDiv.innerHTML = '<div class="spinner" style="width: 30px; height: 30px; border-width: 3px;"></div><div style="margin-top: 8px; color: #86868b;">處理中...</div>';
 
-            try {
-                const timestamp = new Date().toISOString();
-                const localTime = new Date().toLocaleString('zh-TW', {
-                    year: 'numeric',
-                    month: '2-digit',
-                    day: '2-digit',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    second: '2-digit'
-                });
-
-                const res = await fetch(`${SUPABASE_URL}/rest/v1/attendance_log`, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "apikey": SUPABASE_KEY,
-                        "Authorization": `Bearer ${SUPABASE_KEY}`,
-                        "Prefer": "return=representation"
-                    },
-                    body: JSON.stringify({
-                        user_id: userId,
-                        type: actionType,
-                        timestamp: timestamp
-                    })
-                });
-
-                if (!res.ok) {
-                    throw new Error('打卡失敗');
-                }
-
-                const data = await res.json();
-
-                // 顯示成功訊息
+            // 模擬短暫延遲後顯示成功（假數據模式，不寫入資料庫）
+            const localTime = new Date().toLocaleString('zh-TW', {
+                year: 'numeric', month: '2-digit', day: '2-digit',
+                hour: '2-digit', minute: '2-digit', second: '2-digit'
+            });
+            setTimeout(() => {
                 resultDiv.className = "result success";
                 resultDiv.innerHTML = `
                     <div class="result-icon">${actionType === "clock_in" ? "✅" : "🏠"}</div>
                     <div class="result-text">${actionType === "clock_in" ? "上班打卡成功！" : "下班打卡成功！"}</div>
                     <div class="result-time">${localTime}</div>
+                    <div class="result-time" style="margin-top: 4px; font-size: 11px;">${project} · ${category}</div>
                 `;
-
-                console.log("Inserted:", data);
-                
-                // 如果當前在統計頁面，刷新統計數據
-                const statsTab = document.getElementById("statsTab");
-                if (statsTab && statsTab.classList.contains("active")) {
-                    loadStatistics(userId);
-                }
-            } catch (error) {
-                // 顯示錯誤訊息
-                resultDiv.className = "result";
-                resultDiv.style.background = "#fff2f1";
-                resultDiv.style.borderColor = "#ff3b30";
-                resultDiv.innerHTML = `
-                    <div class="result-icon">❌</div>
-                    <div class="result-text" style="color: #ff3b30;">打卡失敗</div>
-                    <div class="result-time" style="color: #6e6e73;">請稍後再試</div>
-                `;
-                console.error("Error:", error);
-            } finally {
-                // 重新啟用按鈕
                 clockInBtn.disabled = false;
                 clockOutBtn.disabled = false;
-            }
+            }, 400);
         }
 
-        async function fetchAttendanceHistory(userId, days = 30) {
-            const endDate = new Date();
-            const startDate = new Date();
-            startDate.setDate(startDate.getDate() - days);
+        /** 產生假打卡記錄（含專案、類別），可依專案/類別篩選；用於呈現趨勢 */
+        function getFakeAttendanceRecords(userId, days = 30, projectFilter, categoryFilter) {
+            const records = [];
+            const end = new Date();
+            const start = new Date();
+            start.setDate(start.getDate() - days);
+            const seed = (userId || '').split('').reduce((a, c) => a + c.charCodeAt(0), 0);
 
-            const res = await fetch(
-                `${SUPABASE_URL}/rest/v1/attendance_log?user_id=eq.${userId}&timestamp=gte.${startDate.toISOString()}&timestamp=lte.${endDate.toISOString()}&order=timestamp.asc`,
-                {
-                    headers: {
-                        "apikey": SUPABASE_KEY,
-                        "Authorization": `Bearer ${SUPABASE_KEY}`
-                    }
+            for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+                const dayOfWeek = d.getDay();
+                if (dayOfWeek === 0 || dayOfWeek === 6) continue;
+                const daySeed = seed + d.getTime();
+                // 每天產生 2 組打卡（不同專案/類別），讓「全部」與篩選都有趨勢可看
+                for (let i = 0; i < 2; i++) {
+                    const pi = (daySeed + i * 7) % PROJECT_NAMES.length;
+                    const ci = (daySeed + i * 11 + 1) % CATEGORIES.length;
+                    const project = PROJECT_NAMES[pi];
+                    const category = CATEGORIES[ci];
+                    if (projectFilter && project !== projectFilter) continue;
+                    if (categoryFilter && category !== categoryFilter) continue;
+                    const inHour = 8 + (i === 0 ? 0 : 1);
+                    const outHour = 17 + (i % 2);
+                    records.push({
+                        user_id: userId,
+                        type: 'clock_in',
+                        timestamp: new Date(d.getFullYear(), d.getMonth(), d.getDate(), inHour, (daySeed % 20), 0).toISOString(),
+                        project_name: project,
+                        category: category
+                    });
+                    records.push({
+                        user_id: userId,
+                        type: 'clock_out',
+                        timestamp: new Date(d.getFullYear(), d.getMonth(), d.getDate(), outHour, 20 + (daySeed % 40), 0).toISOString(),
+                        project_name: project,
+                        category: category
+                    });
                 }
-            );
-
-            if (!res.ok) {
-                throw new Error('獲取打卡記錄失敗');
             }
-
-            return await res.json();
+            return records.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
         }
 
         function calculateWorkHours(records) {
-            const dailyHours = {};
-            const clockIns = [];
-            const clockOuts = [];
-
-            // 分離上班和下班記錄
+            const byKey = {};
             records.forEach(record => {
                 const date = new Date(record.timestamp);
                 const dateKey = date.toISOString().split('T')[0];
-                
-                if (!dailyHours[dateKey]) {
-                    dailyHours[dateKey] = { clockIn: null, clockOut: null };
-                }
-
-                if (record.type === 'clock_in') {
-                    dailyHours[dateKey].clockIn = date;
-                    clockIns.push({ date: dateKey, time: date });
-                } else if (record.type === 'clock_out') {
-                    dailyHours[dateKey].clockOut = date;
-                    clockOuts.push({ date: dateKey, time: date });
-                }
+                const key = dateKey + '|' + (record.project_name || '') + '|' + (record.category || '');
+                if (!byKey[key]) byKey[key] = { clockIn: null, clockOut: null };
+                if (record.type === 'clock_in') byKey[key].clockIn = date;
+                else if (record.type === 'clock_out') byKey[key].clockOut = date;
             });
-
-            // 計算每日工時
-            const hoursData = [];
-            Object.keys(dailyHours).sort().forEach(dateKey => {
-                const day = dailyHours[dateKey];
+            const byDate = {};
+            Object.keys(byKey).sort().forEach(key => {
+                const day = byKey[key];
                 if (day.clockIn && day.clockOut) {
                     const hours = (day.clockOut - day.clockIn) / (1000 * 60 * 60);
-                    hoursData.push({
-                        date: dateKey,
-                        hours: parseFloat(hours.toFixed(2)),
-                        clockIn: day.clockIn,
-                        clockOut: day.clockOut
-                    });
+                    const dateKey = key.split('|')[0];
+                    if (!byDate[dateKey]) byDate[dateKey] = 0;
+                    byDate[dateKey] += parseFloat(hours.toFixed(2));
                 }
             });
-
-            return hoursData;
+            return Object.keys(byDate).sort().map(date => ({ date, hours: byDate[date] }));
         }
 
         function formatDate(dateString) {
@@ -557,27 +607,52 @@
             return m > 0 ? `${h}小時${m}分鐘` : `${h}小時`;
         }
 
-        async function loadStatistics(userId) {
+        function bindStatsFilters(userId) {
+            const p = document.getElementById("statsProject");
+            const c = document.getElementById("statsCategory");
+            if (p) p.onchange = () => loadStatistics(userId);
+            if (c) c.onchange = () => loadStatistics(userId);
+        }
+
+        function loadStatistics(userId) {
             const statsContent = document.getElementById("statsContent");
-            
+            const currentProject = (document.getElementById("statsProject") && document.getElementById("statsProject").value) || '全部';
+            const currentCategory = (document.getElementById("statsCategory") && document.getElementById("statsCategory").value) || '全部';
+
             try {
-                console.log('開始載入統計資料...');
-                const records = await fetchAttendanceHistory(userId, 30);
-                console.log('獲取到記錄數:', records.length);
+                const projectFilter = currentProject === '全部' ? null : currentProject;
+                const categoryFilter = currentCategory === '全部' ? null : currentCategory;
+                const records = getFakeAttendanceRecords(userId, 30, projectFilter, categoryFilter);
                 const hoursData = calculateWorkHours(records);
-                console.log('計算後的工時數據:', hoursData);
+
+                const projectOptions = '<option value="全部">全部專案</option>' + PROJECT_NAMES.map(p => 
+                    `<option value="${p}" ${currentProject === p ? 'selected' : ''}>${p}</option>`
+                ).join('');
+                const categoryOptions = '<option value="全部">全部類別</option>' + CATEGORIES.map(c => 
+                    `<option value="${c}" ${currentCategory === c ? 'selected' : ''}>${c}</option>`
+                ).join('');
 
                 if (hoursData.length === 0) {
                     statsContent.innerHTML = `
+                        <div class="stats-filters">
+                            <div class="form-group">
+                                <label class="field-label">專案</label>
+                                <select id="statsProject" class="field-select">${projectOptions}</select>
+                            </div>
+                            <div class="form-group">
+                                <label class="field-label">類別</label>
+                                <select id="statsCategory" class="field-select">${categoryOptions}</select>
+                            </div>
+                        </div>
                         <div style="text-align: center; padding: 40px; color: #86868b;">
                             <div style="font-size: 48px; margin-bottom: 16px;">📊</div>
-                            <div>尚無打卡記錄</div>
+                            <div>此條件下尚無打卡記錄（假數據）</div>
                         </div>
                     `;
+                    bindStatsFilters(userId);
                     return;
                 }
 
-                // 計算統計數據
                 const totalHours = hoursData.reduce((sum, day) => sum + day.hours, 0);
                 const avgHours = totalHours / hoursData.length;
                 const thisWeekHours = hoursData
@@ -589,17 +664,21 @@
                     })
                     .reduce((sum, day) => sum + day.hours, 0);
                 const workDays = hoursData.length;
-
-                // 準備圖表數據（最近7天，如果不足7天則顯示所有數據）
                 const recentDays = hoursData.slice(-7);
-                const chartLabels = recentDays.length > 0 
-                    ? recentDays.map(day => formatDate(day.date))
-                    : [];
-                const chartData = recentDays.length > 0
-                    ? recentDays.map(day => day.hours)
-                    : [];
+                const chartLabels = recentDays.length > 0 ? recentDays.map(day => formatDate(day.date)) : [];
+                const chartData = recentDays.length > 0 ? recentDays.map(day => day.hours) : [];
 
                 statsContent.innerHTML = `
+                    <div class="stats-filters">
+                        <div class="form-group">
+                            <label class="field-label">專案</label>
+                            <select id="statsProject" class="field-select">${projectOptions}</select>
+                        </div>
+                        <div class="form-group">
+                            <label class="field-label">類別</label>
+                            <select id="statsCategory" class="field-select">${categoryOptions}</select>
+                        </div>
+                    </div>
                     <div class="stats-grid">
                         <div class="stat-card">
                             <div class="stat-value">${formatHours(totalHours)}</div>
@@ -631,12 +710,10 @@
                         </div>
                     </div>
                 `;
+                bindStatsFilters(userId);
 
-                // 等待 DOM 更新後再創建圖表
                 setTimeout(() => {
-                    // 檢查 Chart.js 是否已載入
                     if (typeof Chart === 'undefined') {
-                        console.error('Chart.js 未載入');
                         statsContent.innerHTML += `
                             <div style="text-align: center; padding: 20px; color: #ff3b30;">
                                 <div>圖表庫載入失敗，請重新整理頁面</div>
@@ -644,10 +721,6 @@
                         `;
                         return;
                     }
-
-                    console.log('準備創建圖表，數據點數:', chartData.length);
-                    console.log('圖表標籤:', chartLabels);
-                    console.log('圖表數據:', chartData);
 
                     // 創建每日工時折線圖
                     const dailyCtx = document.getElementById('dailyHoursChart');
