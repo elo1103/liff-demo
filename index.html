@@ -7,7 +7,6 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
         /* Design tokens — Apple-inspired (align with design-reference) */
@@ -391,7 +390,6 @@
     </div>
 
     <script>
-        const LIFF_ID = "2008507273-84v7GBep";
         const PROJECT_NAMES = [
             "快閃店小型陳列架製作",
             "連鎖門市展示架製作",
@@ -402,23 +400,16 @@
         ];
         const CATEGORIES = ["估價", "設計", "工程", "安裝", "返工"];
 
-        async function main() {
-            await liff.init({ liffId: LIFF_ID });
-
-            if (!liff.isLoggedIn()) {
-                liff.login();
-                return;
-            }
-
-            const profile = await liff.getProfile();
-            const userId = profile.userId;
-            const avatarText = profile.displayName.charAt(0).toUpperCase();
+        function main() {
+            const userId = "local-user";
+            const displayName = "使用者";
+            const avatarText = displayName.charAt(0);
 
             document.getElementById("app").innerHTML = `
                 <div class="container">
                     <div class="header">
                         <div class="avatar">${avatarText}</div>
-                        <div class="greeting">你好，${profile.displayName}</div>
+                        <div class="greeting">你好，${displayName}</div>
                         <div class="subtitle">請選擇專案與類別後打卡</div>
                     </div>
                     <div class="tabs">
